@@ -33,6 +33,7 @@ class Delivery(Base):
     weather_adjusted_eta: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    weather_condition: Mapped[str | None] = mapped_column(String(50), nullable=True)
     dispatched_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

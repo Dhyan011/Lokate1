@@ -28,6 +28,7 @@ class DeliveryRead(BaseModel):
     distance_km: float | None
     predicted_duration_minutes: float | None
     weather_adjusted_eta: datetime | None
+    weather_condition: str | None
     dispatched_at: datetime | None
     delivered_at: datetime | None
     created_at: datetime

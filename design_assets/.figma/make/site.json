@@ -1,0 +1,10 @@
+{
+  "description": "Create an interactive, animated 3D scene that enhances user engagement by visually representing a hero's background, perfect for modern web applications.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

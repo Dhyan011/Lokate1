@@ -50,6 +50,7 @@ async def create_delivery(data: DeliveryCreate, db: SessionDep):
         distance_km=dist,
         predicted_duration_minutes=dur,
         weather_adjusted_eta=eta,
+        weather_condition=sev,
         status=DeliveryStatus.IN_TRANSIT,
         dispatched_at=datetime.now(timezone.utc),
     )

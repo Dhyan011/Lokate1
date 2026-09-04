@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.warehouse import Bin, Row
 
 from app.database import get_db
 from app.models.inventory import InventoryItem
@@ -15,6 +16,7 @@ SessionDep = Annotated[AsyncSession, Depends(get_db)]
 @router.get("", response_model=list[InventoryItemRead])
 async def list_inventory(
     db: SessionDep,
+    warehouse_id: int | None = None,
     product_id: int | None = None,
     bin_id: int | None = None,
 ):
@@ -23,6 +25,8 @@ async def list_inventory(
     Quantity updates MUST go through the /movements endpoints.
     """
     stmt = select(InventoryItem)
+    if warehouse_id:
+        stmt = stmt.join(Bin, InventoryItem.bin_id == Bin.id).join(Row, Bin.row_id == Row.id).where(Row.warehouse_id == warehouse_id)
     if product_id:
         stmt = stmt.where(InventoryItem.product_id == product_id)
     if bin_id:

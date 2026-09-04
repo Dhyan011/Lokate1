@@ -1,0 +1,200 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* Colors */
+  --color-base: #12131A;
+  --color-base-dark: #0A0A0E;
+  --color-base-deep: #2A2C3A;
+  --color-card: #1C1E28;
+  --color-ink: #F2EFE9;
+  --color-ink-muted: #8B8778;
+  --color-ink-subtle: #5C584E;
+  --color-border: rgba(242, 239, 233, 0.08);
+  --color-accent: #E08F5E;
+  --color-accent-light: #F4BA9B;
+  --color-accent-dark: #A65A2E;
+  --color-success: #5FA374;
+  --color-success-light: #9BD4AF;
+  --color-success-dark: #376E4A;
+  --color-alert: #D94F3D;
+  --color-alert-light: #F29385;
+  --color-alert-dark: #962F22;
+  --color-warm: #E8B86D;
+  --color-warm-light: #F9DBA1;
+  --color-warm-dark: #A87E3E;
+
+  /* Fonts */
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Shadows for dark theme */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.2);
+  --shadow: 0 4px 12px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-xl: 0 24px 48px rgba(0,0,0,0.7), 0 8px 24px rgba(0,0,0,0.5);
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.3), 0 0 1px rgba(242, 239, 233, 0.05);
+  --shadow-hover: 0 8px 24px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4);
+  --shadow-accent: 0 4px 20px rgba(224, 143, 94, 0.2);
+}
+
+/* ── Design System CSS Custom Properties (mirrors tokens.ts if used) ──────── */
+:root {
+  --color-base: #12131A;
+  --color-base-dark: #0A0A0E;
+  --color-base-deep: #2A2C3A;
+  --color-card: #1C1E28;
+  --color-ink: #F2EFE9;
+  --color-ink-muted: #8B8778;
+  --color-ink-subtle: #5C584E;
+  --color-border: rgba(242, 239, 233, 0.08);
+  --color-accent: #E08F5E;
+  --color-accent-light: #F4BA9B;
+  --color-accent-dark: #A65A2E;
+  --color-success: #5FA374;
+  --color-success-light: #9BD4AF;
+  --color-alert: #D94F3D;
+  --color-alert-light: #F29385;
+  --color-warm: #E8B86D;
+  --color-warm-light: #F9DBA1;
+
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.3), 0 0 1px rgba(242, 239, 233, 0.05);
+  --shadow-hover: 0 8px 24px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4);
+  --shadow-xl: 0 24px 48px rgba(0,0,0,0.7), 0 8px 24px rgba(0,0,0,0.5);
+  --shadow-accent: 0 4px 20px rgba(224, 143, 94, 0.2);
+
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Base Reset ────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background-color: var(--color-base);
+  color: var(--color-ink);
+  line-height: 1.6;
+  font-size: 16px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+  margin: 0;
+}
+
+p { margin: 0; }
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--color-base-dark); }
+::-webkit-scrollbar-thumb { background: var(--color-base-deep); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-ink-subtle); }
+
+/* ── Selection ────────────────────────────────────────────────────────────── */
+::selection {
+  background: var(--color-accent-light);
+  color: var(--color-base-dark);
+}
+
+/* ── Focus ────────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Utility Classes ─────────────────────────────────────────────────────── */
+.font-display { font-family: var(--font-display); }
+.font-body { font-family: var(--font-body); }
+
+.text-balance { text-wrap: balance; }
+.text-pretty { text-wrap: pretty; }
+
+/* Page transition wrapper */
+.page-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-base-dark) 25%,
+    var(--color-base-deep) 50%,
+    var(--color-base-dark) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+/* Count-up number highlight */
+.stat-number {
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: var(--color-ink);
+  font-feature-settings: 'tnum';
+}
+
+/* ── Map overrides ────────────────────────────────────────────────────────── */
+.rsm-geography {
+  outline: none;
+}
+.rsm-geography:focus {
+  outline: none;
+}

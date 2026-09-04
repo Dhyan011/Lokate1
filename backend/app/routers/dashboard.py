@@ -10,9 +10,35 @@ from app.models.inventory import InventoryItem
 from app.models.product import Product
 from app.models.warehouse import Bin, Row, Warehouse
 from app.schemas.dashboard import LowStockAlert, StockByRow, WarehouseSummary
+from pydantic import BaseModel
+
+class NetworkStats(BaseModel):
+    totalWarehouses: int
+    totalCapacityMT: int
+    usedCapacityMT: int
+    activeDeliveries: int
+    alerts: int
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 SessionDep = Annotated[AsyncSession, Depends(get_db)]
+
+
+@router.get("/stats", response_model=NetworkStats)
+async def get_network_stats(db: SessionDep):
+    """Aggregate network stats for frontend."""
+    warehouses = (await db.execute(select(func.count(Warehouse.id)))).scalar() or 0
+    total_cap = (await db.execute(select(func.sum(Warehouse.storage_capacity)))).scalar() or 0
+    used_cap = (await db.execute(select(func.sum(InventoryItem.quantity)))).scalar() or 0
+    active_del = (await db.execute(select(func.count(Delivery.id)).where(Delivery.status.in_([DeliveryStatus.PENDING, DeliveryStatus.IN_TRANSIT])))).scalar() or 0
+    alerts = len(await get_low_stock(db))
+    
+    return NetworkStats(
+        totalWarehouses=warehouses,
+        totalCapacityMT=int(total_cap),
+        usedCapacityMT=int(used_cap),
+        activeDeliveries=active_del,
+        alerts=alerts
+    )
 
 
 @router.get("/overview", response_model=list[StockByRow])
