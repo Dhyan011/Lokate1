@@ -54,6 +54,7 @@ class WarehouseCandidate(BaseModel):
     weather_adjusted_eta_minutes: float | None = None
     score: float | None = None
     reason: str | None = None
+    bin_location: str | None = None
 
 
 class OrderFulfillmentResponse(BaseModel):

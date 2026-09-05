@@ -556,7 +556,8 @@ export function mockOrderResponse(_req: OrderRequest): OrderResponse {
         duration_minutes: 60,
         weather_adjusted_eta_minutes: 60,
         score: 94,
-        reason: 'Nearest warehouse with matching SKU and sufficient quantity'
+        reason: 'Nearest warehouse with matching SKU and sufficient quantity',
+        bin_location: 'A-01-01'
       },
       alternatives: [
         {
@@ -569,7 +570,8 @@ export function mockOrderResponse(_req: OrderRequest): OrderResponse {
           duration_minutes: 240,
           weather_adjusted_eta_minutes: 240,
           score: 78,
-          reason: 'Secondary option with good availability'
+          reason: 'Secondary option with good availability',
+          bin_location: 'B-03-02'
         }
       ]
     }))

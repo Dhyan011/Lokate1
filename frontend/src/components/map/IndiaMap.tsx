@@ -6,6 +6,7 @@ import {
   Marker,
   ZoomableGroup,
 } from 'react-simple-maps';
+import { geoCentroid } from 'd3-geo';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Warehouse } from '../../types';
 import { colors } from '../../styles/tokens';
@@ -22,6 +23,14 @@ interface TooltipState {
   x: number;
   y: number;
   warehouse: Warehouse;
+}
+
+interface StateTooltipState {
+  x: number;
+  y: number;
+  stateName: string;
+  warehouseCount: number;
+  totalCapacity: number;
 }
 
 interface IndiaMapProps {
@@ -52,8 +61,10 @@ function markerSize(utilization: number): number {
 
 export function IndiaMap({ warehouses, selectedState, onStateSelect, className = '' }: IndiaMapProps) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [stateTooltip, setStateTooltip] = useState<StateTooltipState | null>(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [mapPosition, setMapPosition] = useState({ coordinates: INDIA_CENTER, zoom: 1 });
   const mapRef = useRef<HTMLDivElement>(null);
   const tooltipTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -78,8 +89,23 @@ export function IndiaMap({ warehouses, selectedState, onStateSelect, className =
     setTooltip(null);
   }, []);
 
-  const handleStateClick = useCallback((stateName: string) => {
-    onStateSelect?.(selectedState === stateName ? undefined : stateName);
+  const handleStateClick = useCallback((stateName: string, geo: any) => {
+    if (selectedState === stateName) {
+      onStateSelect?.(undefined);
+      setMapPosition({ coordinates: INDIA_CENTER, zoom: 1 });
+    } else {
+      onStateSelect?.(stateName);
+      if (geo && geo.type === "Feature") {
+        try {
+          const centroid = geoCentroid(geo);
+          if (centroid && !isNaN(centroid[0]) && !isNaN(centroid[1])) {
+             setMapPosition({ coordinates: centroid as [number, number], zoom: 3 });
+          }
+        } catch (e) {
+          console.error("Failed to calculate centroid", e);
+        }
+      }
+    }
   }, [selectedState, onStateSelect]);
 
   const closeDrawer = useCallback(() => {
@@ -110,10 +136,17 @@ export function IndiaMap({ warehouses, selectedState, onStateSelect, className =
           style={{ width: '100%', height: '100%' }}
           height={560}
         >
-          <ZoomableGroup center={INDIA_CENTER} minZoom={1} maxZoom={4}>
+          <ZoomableGroup
+            center={mapPosition.coordinates}
+            zoom={mapPosition.zoom}
+            minZoom={1}
+            maxZoom={4}
+            onMoveEnd={(pos) => setMapPosition(pos)}
+          >
             {/* State geographies */}
             <Geographies geography={GEO_URL}>
               {({ geographies }) => {
+                if (!geographies || !Array.isArray(geographies)) return null;
                 // Filter to India if using world atlas, or use india-atlas directly
                 const indiaGeos = geographies.filter(geo =>
                   // india-atlas: all features are Indian states
@@ -133,7 +166,21 @@ export function IndiaMap({ warehouses, selectedState, onStateSelect, className =
                     <Geography
                       key={geo.rsmKey}
                       geography={geo}
-                      onClick={() => stateName && handleStateClick(stateName)}
+                      onClick={() => stateName && handleStateClick(stateName, geo)}
+                      onMouseMove={(e: React.MouseEvent) => {
+                        if (!stateName) return;
+                        const rect = mapRef.current?.getBoundingClientRect();
+                        if (!rect) return;
+                        const stateWarehouses = warehouses.filter(w => w.state === stateName);
+                        setStateTooltip({
+                          x: e.clientX - rect.left,
+                          y: e.clientY - rect.top,
+                          stateName,
+                          warehouseCount: stateWarehouses.length,
+                          totalCapacity: stateWarehouses.reduce((sum, w) => sum + w.total_capacity_mt, 0)
+                        });
+                      }}
+                      onMouseLeave={() => setStateTooltip(null)}
                       style={{
                         default: {
                           fill: isSelected
@@ -145,7 +192,8 @@ export function IndiaMap({ warehouses, selectedState, onStateSelect, className =
                           strokeWidth: 1.2,
                           outline: 'none',
                           cursor: stateName ? 'pointer' : 'default',
-                          transition: 'fill 200ms ease',
+                          transition: 'all 300ms ease',
+                          opacity: selectedState && !isSelected ? 0.08 : 1,
                         },
                         hover: {
                           fill: isSelected
@@ -154,6 +202,7 @@ export function IndiaMap({ warehouses, selectedState, onStateSelect, className =
                           stroke: colors.base,
                           strokeWidth: 1.2,
                           outline: 'none',
+                          opacity: selectedState && !isSelected ? 0.15 : 1,
                         },
                         pressed: {
                           fill: `${colors.accentPrimary}28`,
@@ -254,7 +303,10 @@ export function IndiaMap({ warehouses, selectedState, onStateSelect, className =
           <div className="absolute top-4 left-4 bg-accent text-white rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-accent text-sm font-medium">
             <span>{selectedState}</span>
             <button
-              onClick={() => onStateSelect?.(undefined)}
+              onClick={() => {
+                onStateSelect?.(undefined);
+                setMapPosition({ coordinates: INDIA_CENTER, zoom: 1 });
+              }}
               className="hover:opacity-70 transition-opacity"
             >
               ✕
@@ -264,12 +316,18 @@ export function IndiaMap({ warehouses, selectedState, onStateSelect, className =
 
         {/* Stats overlay */}
         <div className="absolute top-4 right-4 flex flex-col gap-2">
+          {selectedState && (
+            <div className="bg-base/90 backdrop-blur-sm border border-base-deep rounded-lg px-3 py-1.5 text-center shadow-card text-xs font-semibold text-ink uppercase tracking-wider">
+              {selectedState}
+            </div>
+          )}
           {[
-            { label: 'Active', value: warehouses.filter(w => w.status === 'ACTIVE').length, color: 'text-success' },
-            { label: 'Cold', value: warehouses.filter(w => w.facility_type === 'COLD_STORAGE').length, color: 'text-accent' },
+            { label: 'Active', value: filteredWarehouses.filter(w => w.status === 'ACTIVE').length, color: 'text-success' },
+            { label: 'Cold', value: filteredWarehouses.filter(w => w.facility_type === 'COLD_STORAGE').length, color: 'text-accent' },
+            { label: 'Total', value: filteredWarehouses.length, color: 'text-ink' },
           ].map(stat => (
             <div key={stat.label}
-                 className="bg-base/90 backdrop-blur-sm border border-base-deep rounded-lg px-3 py-2 text-center shadow-card min-w-[56px]">
+                 className="bg-base/90 backdrop-blur-sm border border-base-deep rounded-lg px-3 py-2 text-center shadow-card min-w-[64px]">
               <div className={`font-display text-lg font-bold ${stat.color}`}>{stat.value}</div>
               <div className="text-xs text-ink-subtle">{stat.label}</div>
             </div>
@@ -279,7 +337,7 @@ export function IndiaMap({ warehouses, selectedState, onStateSelect, className =
 
       {/* Tooltip */}
       <AnimatePresence>
-        {tooltip && (
+        {tooltip ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.92, y: -4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -298,7 +356,26 @@ export function IndiaMap({ warehouses, selectedState, onStateSelect, className =
               </div>
             </div>
           </motion.div>
-        )}
+        ) : stateTooltip ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: -4 }}
+            transition={{ duration: 0.12 }}
+            className="absolute z-50 pointer-events-none"
+            style={{
+              left: stateTooltip.x + 12,
+              top: stateTooltip.y - 40,
+            }}
+          >
+            <div className="bg-ink text-base rounded-lg px-3 py-2 shadow-xl text-sm whitespace-nowrap">
+              <div className="font-semibold">{stateTooltip.stateName}</div>
+              <div className="text-base/60 text-xs mt-0.5">
+                {stateTooltip.warehouseCount} facilities · {(stateTooltip.totalCapacity / 1000).toFixed(0)}K MT Capacity
+              </div>
+            </div>
+          </motion.div>
+        ) : null}
       </AnimatePresence>
 
       {/* Side Drawer */}

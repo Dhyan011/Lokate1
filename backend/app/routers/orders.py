@@ -46,15 +46,44 @@ async def create_order_with_fulfillment_plan(data: OrderCreate, db: SessionDep):
         
         # Decide based on top pick
         picked_wh_id = None
+        picked_bin_id = None
         if fulfillment.top_pick and fulfillment.top_pick.can_fully_fulfill:
             picked_wh_id = fulfillment.top_pick.warehouse_id
+            bin_loc = fulfillment.top_pick.bin_location.split(",")[0].strip() if fulfillment.top_pick.bin_location else None
+            
+            if bin_loc:
+                from app.models.warehouse import Bin
+                from app.models.inventory import InventoryItem
+                from app.models.movement import StockMovement, MovementType
+                
+                # Fetch exact bin
+                bin_stmt = select(Bin).where(Bin.location_code == bin_loc)
+                bin_obj = (await db.execute(bin_stmt)).scalar_one_or_none()
+                
+                if bin_obj:
+                    picked_bin_id = bin_obj.id
+                    # Decrement stock
+                    inv_stmt = select(InventoryItem).where(InventoryItem.bin_id == bin_obj.id, InventoryItem.product_id == li_schema.product_id)
+                    inv_obj = (await db.execute(inv_stmt)).scalar_one_or_none()
+                    if inv_obj:
+                        inv_obj.quantity -= li_schema.quantity
+                        
+                        # Generate OUTWARD movement log
+                        movement = StockMovement(
+                            product_id=li_schema.product_id,
+                            bin_id=bin_obj.id,
+                            type=MovementType.OUTWARD,
+                            quantity=li_schema.quantity,
+                            note="Order fulfillment"
+                        )
+                        db.add(movement)
             
         line_item = OrderLineItem(
             order_id=order.id,
             product_id=li_schema.product_id,
             quantity=li_schema.quantity,
             fulfilled_from_warehouse_id=picked_wh_id,
-            # We skip picking the exact BIN here for brevity, the prompt says resolve candidate *warehouses*
+            fulfilled_from_bin_id=picked_bin_id
         )
         db.add(line_item)
         

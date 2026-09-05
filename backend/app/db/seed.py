@@ -1,23 +1,18 @@
-"""Seed script to populate the database with hackathon-ready demo data."""
+"""Seed script to populate the database with hackathon-ready demo data matching frontend mocks."""
 
 import argparse
 import asyncio
-import random
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import settings
 from app.database import Base
-from app.models.delivery import Delivery, DeliveryStatus, DeliveryTrackingEvent
-from app.models.movement import MovementType, StockMovement
-from app.models.order import Order, OrderLineItem, OrderStatus
 from app.models.product import Product
 from app.models.vendor import Vendor
 from app.models.warehouse import Bin, Row, Warehouse
-from app.services.movement_service import record_inward, record_transfer
-
+from app.services.movement_service import record_inward
 
 async def reset_db(engine):
     print("Resetting database...")
@@ -25,49 +20,27 @@ async def reset_db(engine):
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
-
 async def seed_data(session: AsyncSession):
-    print("Seeding warehouses...")
-    # 3 Warehouses in different cities (India mapping for an example)
-    warehouses_data = [
-        {
-            "warehouse_code": "WH-MUM-01",
-            "name": "Mumbai Central Hub",
-            "address": "Bandra Kurla Complex, Mumbai, Maharashtra 400051",
-            "latitude": 19.0673,
-            "longitude": 72.8659,
-            "storage_capacity": 50000,
-            "point_of_contact_name": "Rahul Sharma",
-            "point_of_contact_phone": "+91 98765 43210",
-            "point_of_contact_email": "rahul.mumbai@wheresproduct.ai",
-            "operating_hours": "08:00-22:00",
-        },
-        {
-            "warehouse_code": "WH-DEL-01",
-            "name": "Delhi North Distribution",
-            "address": "Okhla Industrial Estate, New Delhi, Delhi 110020",
-            "latitude": 28.5492,
-            "longitude": 77.2694,
-            "storage_capacity": 40000,
-            "point_of_contact_name": "Priya Singh",
-            "point_of_contact_phone": "+91 98765 43211",
-            "point_of_contact_email": "priya.delhi@wheresproduct.ai",
-            "operating_hours": "00:00-23:59",  # 24/7
-        },
-        {
-            "warehouse_code": "WH-BLR-01",
-            "name": "Bangalore Tech Park Storage",
-            "address": "Electronic City Phase 1, Bangalore, Karnataka 560100",
-            "latitude": 12.8452,
-            "longitude": 77.6602,
-            "storage_capacity": 60000,
-            "point_of_contact_name": "Arjun Reddy",
-            "point_of_contact_phone": "+91 98765 43212",
-            "point_of_contact_email": "arjun.blr@wheresproduct.ai",
-            "operating_hours": "09:00-18:00",
-        },
+    print("Seeding Vendors...")
+    vendors_data = [
+        {"name": "ColdChain Logistics", "contact_name": "Rajesh Sharma", "contact_phone": "+91-9800001111", "contact_email": "rajesh@coldchain.in", "address": "Maharashtra"},
+        {"name": "AgriStore India", "contact_name": "Priya Nair", "contact_phone": "+91-9800002222", "contact_email": "priya@agristore.in", "address": "Punjab"},
     ]
+    vendors = []
+    for vd in vendors_data:
+        v = Vendor(**vd)
+        session.add(v)
+        vendors.append(v)
+    await session.commit()
 
+    print("Seeding Warehouses...")
+    warehouses_data = [
+        {"warehouse_code": "MH-MUM-001", "name": "Mumbai Central Cold Hub", "facility_type": "COLD_STORAGE", "status": "ACTIVE", "city": "Mumbai", "state": "Maharashtra", "address": "Plot 45, APMC Market", "latitude": 19.0760, "longitude": 72.8777, "total_capacity_mt": 12000, "used_capacity_mt": 8400, "available_capacity_mt": 3600, "utilization_pct": 70, "point_of_contact_name": "Manish Rao", "point_of_contact_phone": "+91-9871234567", "point_of_contact_email": "manish@wh1.in", "facility_tags": "cold-chain,food-grade", "feasibility_note": "Open 24/7", "vendor_id": "1"},
+        {"warehouse_code": "PB-LDH-001", "name": "Ludhiana Grain Depot", "facility_type": "WAREHOUSE", "status": "ACTIVE", "city": "Ludhiana", "state": "Punjab", "address": "Focal Point, Phase 8", "latitude": 30.9010, "longitude": 75.8573, "total_capacity_mt": 25000, "used_capacity_mt": 19500, "available_capacity_mt": 5500, "utilization_pct": 78, "point_of_contact_name": "Gurpreet Kaur", "point_of_contact_phone": "+91-9823456789", "point_of_contact_email": "gurpreet@wh3.in", "facility_tags": "food-grade,WDRA", "feasibility_note": "FCI-approved", "vendor_id": "2"},
+        {"warehouse_code": "MP-IND-001", "name": "Indore Central Agri Hub", "facility_type": "WAREHOUSE", "status": "ACTIVE", "city": "Indore", "state": "Madhya Pradesh", "address": "Pithampur AKVN", "latitude": 22.7196, "longitude": 75.8577, "total_capacity_mt": 20000, "used_capacity_mt": 12000, "available_capacity_mt": 8000, "utilization_pct": 60, "point_of_contact_name": "Asha Deshpande", "point_of_contact_phone": "+91-9890123456", "point_of_contact_email": "asha@wh10.in", "facility_tags": "food-grade", "feasibility_note": "Central Hub", "vendor_id": "2"},
+        {"warehouse_code": "TG-HYD-001", "name": "Hyderabad Deccan Cold Hub", "facility_type": "COLD_STORAGE", "status": "ACTIVE", "city": "Hyderabad", "state": "Telangana", "address": "IDA Jeedimetla", "latitude": 17.3850, "longitude": 78.4867, "total_capacity_mt": 9500, "used_capacity_mt": 7200, "available_capacity_mt": 2300, "utilization_pct": 75.8, "point_of_contact_name": "Srinivas Reddy", "point_of_contact_phone": "+91-9800123456", "point_of_contact_email": "srinivas@wh11.in", "facility_tags": "cold-chain", "feasibility_note": "Cold storage", "vendor_id": "1"},
+    ]
+    
     warehouses = []
     for wd in warehouses_data:
         w = Warehouse(**wd)
@@ -75,172 +48,46 @@ async def seed_data(session: AsyncSession):
         warehouses.append(w)
     await session.commit()
 
-    all_bins = []
-    for w in warehouses:
-        for r in range(1, 5):  # 4 rows
-            row = Row(warehouse_id=w.id, label=f"R{r}")
-            session.add(row)
-            await session.flush()
-            
-            num_bins = random.randint(10, 15)
-            for b_idx in range(1, num_bins + 1):
-                b = Bin(
-                    row_id=row.id,
-                    label=f"B{b_idx}",
-                    location_code=f"{w.warehouse_code}-R{r}-B{b_idx}",
-                )
-                session.add(b)
-                all_bins.append(b)
+    # Create Rows and Bins for Ludhiana (wh[1]) to match our UI
+    print("Seeding Rows and Bins...")
+    w_ldh = warehouses[1]
+    
+    rows = []
+    # R1 corresponds to Row A in frontend, R2 to Row B, etc.
+    for i, lbl in enumerate(["Row A", "Row B", "Row C", "Row D", "Row E", "Row F"]):
+        r = Row(warehouse_id=w_ldh.id, label=lbl)
+        session.add(r)
+        rows.append(r)
     await session.commit()
 
-    print("Seeding vendors and products...")
-    vendors = []
-    for v_idx in range(1, 16):
-        v = Vendor(
-            name=f"Supplier Enterprise {v_idx}",
-            contact_name=f"Contact {v_idx}",
-            contact_phone=f"1800-SUPPLY-{v_idx:02d}",
-            contact_email=f"sales@supplier{v_idx}.com",
-            address=f"Industrial Zone {v_idx}",
-        )
-        session.add(v)
-        vendors.append(v)
+    # Bins for Row A
+    b1 = Bin(row_id=rows[0].id, label="Bin 1", location_code="A-01-01")
+    # Bins for Row B
+    b2 = Bin(row_id=rows[1].id, label="Bin 2", location_code="B-03-02")
+    session.add_all([b1, b2])
     await session.commit()
 
-    cats = ["Electronics", "Apparel", "Home Goods", "Industrial", "Groceries"]
+    print("Seeding Products...")
+    products_data = [
+        {"sku": "WHT-PNJ-001", "name": "Punjab Wheat (Grade A)", "category": "Grain", "unit": "MT", "weight_per_unit_kg": 1000, "temperature_zone": "AMBIENT", "shelf_life_days": 365, "description": "Premium Punjab wheat"},
+        {"sku": "RIC-BAS-001", "name": "Basmati Rice (1121)", "category": "Grain", "unit": "MT", "weight_per_unit_kg": 1000, "temperature_zone": "AMBIENT", "shelf_life_days": 730, "description": "1121 Basmati rice"},
+    ]
     products = []
-    # 500 SKUs
-    for p_idx in range(1, 501):
-        p = Product(
-            sku=f"SKU-{random.choice(['A','B','C'])}{p_idx:04d}",
-            name=f"Product {p_idx} - {random.choice(['Premium', 'Standard', 'Basic'])}",
-            category=random.choice(cats),
-            reorder_threshold=random.randint(5, 50),
-        )
-        # Link 1-3 random vendors
-        p.vendors = random.sample(vendors, random.randint(1, 3))
+    for pd in products_data:
+        p = Product(**pd)
         session.add(p)
         products.append(p)
     await session.commit()
 
-    print("Seeding stock movements (this will take a moment)...")
-    # Doing 500 initial inwards so almost every product is somewhere
-    for p in products:
-        b = random.choice(all_bins)
-        qty = random.randint(50, 500)
-        # Bypassing the router to use the transactional service directly
-        await record_inward(session, p.id, b.id, qty, "Initial stock")
-
-    # Add ~100 random transfers
-    for _ in range(100):
-        # To do a valid transfer, we need to pick a bin that actually has stock of a product
-        # but for seeding speed, we'll just inwardly add more stock to a random bin then transfer it
-        p = random.choice(products)
-        b_src = random.choice(all_bins)
-        b_dst = random.choice(all_bins)
-        if b_src.id == b_dst.id:
-            continue
-            
-        await record_inward(session, p.id, b_src.id, 100, "Refuel for transfer")
-        await record_transfer(session, p.id, b_src.id, b_dst.id, random.randint(10, 50), "Inter-bin balance")
+    print("Seeding Inventory...")
+    # Ludhiana has 4200 Wheat in A-01-01
+    await record_inward(session, products[0].id, b1.id, 4200, "Initial Stock Seed")
+    
+    # Ludhiana has 2800 Rice in B-03-02
+    await record_inward(session, products[1].id, b2.id, 2800, "Initial Stock Seed")
 
     await session.commit()
-
-    print("Seeding sample Deliveries and Tracking stream...")
-    # Create an order
-    o1 = Order(
-        status=OrderStatus.FULFILLED, # Fully delivered
-        destination_latitude=18.5204, # Pune
-        destination_longitude=73.8567,
-        destination_address="Shivajinagar, Pune, Maharashtra",
-    )
-    session.add(o1)
-    await session.flush()
-    
-    oli = OrderLineItem(
-        order_id=o1.id,
-        product_id=products[0].id,
-        quantity=5,
-        fulfilled_from_warehouse_id=warehouses[0].id, # from Mumbai
-    )
-    session.add(oli)
-    await session.flush()
-
-    d1 = Delivery(
-        order_id=o1.id,
-        warehouse_id=warehouses[0].id,
-        destination_latitude=o1.destination_latitude,
-        destination_longitude=o1.destination_longitude,
-        destination_address=o1.destination_address,
-        status=DeliveryStatus.DELIVERED,
-        distance_km=150.5,
-        predicted_duration_minutes=180,
-        weather_adjusted_eta=datetime.now(timezone.utc) - timedelta(hours=1),
-        dispatched_at=datetime.now(timezone.utc) - timedelta(hours=4),
-        delivered_at=datetime.now(timezone.utc) - timedelta(hours=1),
-    )
-    session.add(d1)
-    await session.flush()
-    
-    # Add tracking events for the completed delivery
-    events = [
-        ("Dispatched from Mumbai Central", 19.0673, 72.8659, 4),
-        ("In transit - Navi Mumbai", 19.0330, 73.0297, 3),
-        ("In transit - Lonavala", 18.7515, 73.4067, 2),
-        ("Delivered", 18.5204, 73.8567, 1),
-    ]
-    for status, lat, lng, hours_ago in events:
-        session.add(DeliveryTrackingEvent(
-            delivery_id=d1.id,
-            latitude=lat,
-            longitude=lng,
-            status=status,
-            timestamp=datetime.now(timezone.utc) - timedelta(hours=hours_ago)
-        ))
-        
-    # Active delivery
-    o2 = Order(
-        status=OrderStatus.PROCESSING,
-        destination_latitude=28.4595, # Gurgaon
-        destination_longitude=77.0266,
-        destination_address="Cyber City, Gurgaon, Haryana",
-    )
-    session.add(o2)
-    await session.flush()
-    
-    d2 = Delivery(
-        order_id=o2.id,
-        warehouse_id=warehouses[1].id, # from Delhi
-        destination_latitude=o2.destination_latitude,
-        destination_longitude=o2.destination_longitude,
-        destination_address=o2.destination_address,
-        status=DeliveryStatus.IN_TRANSIT,
-        distance_km=35.2,
-        predicted_duration_minutes=45,
-        weather_adjusted_eta=datetime.now(timezone.utc) + timedelta(minutes=20),
-        dispatched_at=datetime.now(timezone.utc) - timedelta(minutes=25),
-    )
-    session.add(d2)
-    await session.flush()
-    
-    session.add(DeliveryTrackingEvent(
-        delivery_id=d2.id,
-        latitude=28.5492,
-        longitude=77.2694,
-        status="Dispatched from Delhi North distribution",
-        timestamp=datetime.now(timezone.utc) - timedelta(minutes=25)
-    ))
-    session.add(DeliveryTrackingEvent(
-        delivery_id=d2.id,
-        latitude=28.5020,
-        longitude=77.0850, # somewhere on the way
-        status="In transit - heavy traffic",
-        timestamp=datetime.now(timezone.utc) - timedelta(minutes=5)
-    ))
-
-    await session.commit()
-    print("Seed complete! Created 3 Warehouses, 15 Vendors, 500 Products, ~600 stock movements, and 2 deliveries.")
-
+    print("Seed complete! Created Warehouses, Rows, Bins, Products, and Initial Stock.")
 
 async def main():
     parser = argparse.ArgumentParser()
@@ -252,13 +99,11 @@ async def main():
     if args.reset:
         await reset_db(engine)
 
-    # Use the session to seed
     async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with async_session() as session:
         await seed_data(session)
         
     await engine.dispose()
-
 
 if __name__ == "__main__":
     asyncio.run(main())

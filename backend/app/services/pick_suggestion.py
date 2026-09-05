@@ -35,7 +35,7 @@ async def rank_warehouses_for_order(
     # 2. Find total quantity available for this product GROUPED BY WAREHOUSE
     # We query InventoryItem -> Bin -> Row -> Warehouse
     stmt = (
-        select(Warehouse, InventoryItem)
+        select(Warehouse, InventoryItem, Bin)
         .join(Row, Warehouse.id == Row.warehouse_id)
         .join(Bin, Row.id == Bin.row_id)
         .join(InventoryItem, Bin.id == InventoryItem.bin_id)
@@ -44,11 +44,12 @@ async def rank_warehouses_for_order(
     )
     result = (await db.execute(stmt)).all()
     
-    wh_capacity = {}  # warehouse_id -> [WarehouseObj, total_qty_for_product]
-    for wh, item in result:
+    wh_capacity = {}  # warehouse_id -> [WarehouseObj, total_qty_for_product, set_of_bins]
+    for wh, item, bin_obj in result:
         if wh.id not in wh_capacity:
-            wh_capacity[wh.id] = [wh, 0]
+            wh_capacity[wh.id] = [wh, 0, set()]
         wh_capacity[wh.id][1] += item.quantity
+        wh_capacity[wh.id][2].add(bin_obj.location_code)
         
     if not wh_capacity:
         # None available anywhere
@@ -63,7 +64,7 @@ async def rank_warehouses_for_order(
     
     import asyncio
     
-    async def process_candidate(wh: Warehouse, total_qty: int):
+    async def process_candidate(wh: Warehouse, total_qty: int, bins: set):
         can_fulfill = total_qty >= line_item.quantity
         
         c = WarehouseCandidate(
@@ -71,7 +72,8 @@ async def rank_warehouses_for_order(
             warehouse_code=wh.warehouse_code,
             warehouse_name=wh.name,
             available_quantity=total_qty,
-            can_fully_fulfill=can_fulfill
+            can_fully_fulfill=can_fulfill,
+            bin_location=", ".join(sorted(bins))
         )
         
         try:
@@ -103,7 +105,7 @@ async def rank_warehouses_for_order(
 
         return c
         
-    tasks = [process_candidate(wh, qty) for wh, qty in wh_capacity.values()]
+    tasks = [process_candidate(wh, qty, bins) for wh, qty, bins in wh_capacity.values()]
     candidates = await asyncio.gather(*tasks)
     
     # 4. Sort candidates

@@ -86,7 +86,12 @@ function OrderResults({ result }: { result: OrderResponse }) {
                         </div>
                         <div className="text-right">
                           <div className="text-sm font-bold text-ink">{candidate.available_quantity.toLocaleString()} MT</div>
-                          <div className="text-xs text-ink-subtle">Available</div>
+                          <div className="text-xs text-ink-subtle mb-1.5">Available</div>
+                          {candidate.bin_location && (
+                            <div className="mt-1">
+                              <Badge variant="success" size="sm">Bin: {candidate.bin_location}</Badge>
+                            </div>
+                          )}
                         </div>
                       </div>
 

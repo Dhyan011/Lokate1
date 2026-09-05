@@ -14,6 +14,11 @@ class Product(Base):
     sku: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(300), index=True)
     category: Mapped[str] = mapped_column(String(100))
+    unit: Mapped[str] = mapped_column(String(50), default="MT")
+    weight_per_unit_kg: Mapped[int] = mapped_column(Integer, default=1000)
+    temperature_zone: Mapped[str] = mapped_column(String(50), default="AMBIENT")
+    shelf_life_days: Mapped[int] = mapped_column(Integer, default=365)
+    description: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     reorder_threshold: Mapped[int] = mapped_column(Integer, default=10)
 
     vendors: Mapped[list["Vendor"]] = relationship(

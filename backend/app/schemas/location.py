@@ -11,26 +11,44 @@ from pydantic import BaseModel, ConfigDict
 class WarehouseCreate(BaseModel):
     warehouse_code: str
     name: str
+    facility_type: str = "WAREHOUSE"
+    status: str = "ACTIVE"
+    city: str
+    state: str
     address: str
     latitude: float
     longitude: float
-    storage_capacity: int
+    total_capacity_mt: int
+    used_capacity_mt: int = 0
+    available_capacity_mt: int = 0
+    utilization_pct: float = 0.0
     point_of_contact_name: str
     point_of_contact_phone: str
     point_of_contact_email: str
-    operating_hours: str | None = None
+    facility_tags: str | None = None
+    feasibility_note: str | None = None
+    vendor_id: str | None = None
 
 
 class WarehouseUpdate(BaseModel):
     name: str | None = None
+    facility_type: str | None = None
+    status: str | None = None
+    city: str | None = None
+    state: str | None = None
     address: str | None = None
     latitude: float | None = None
     longitude: float | None = None
-    storage_capacity: int | None = None
+    total_capacity_mt: int | None = None
+    used_capacity_mt: int | None = None
+    available_capacity_mt: int | None = None
+    utilization_pct: float | None = None
     point_of_contact_name: str | None = None
     point_of_contact_phone: str | None = None
     point_of_contact_email: str | None = None
-    operating_hours: str | None = None
+    facility_tags: str | None = None
+    feasibility_note: str | None = None
+    vendor_id: str | None = None
 
 
 class WarehouseRead(BaseModel):
@@ -39,14 +57,23 @@ class WarehouseRead(BaseModel):
     id: int
     warehouse_code: str
     name: str
+    facility_type: str
+    status: str
+    city: str
+    state: str
     address: str
     latitude: float
     longitude: float
-    storage_capacity: int
+    total_capacity_mt: int
+    used_capacity_mt: int
+    available_capacity_mt: int
+    utilization_pct: float
     point_of_contact_name: str
     point_of_contact_phone: str
     point_of_contact_email: str
-    operating_hours: str | None
+    facility_tags: str | None = None
+    feasibility_note: str | None = None
+    vendor_id: str | None = None
     created_at: datetime
     updated_at: datetime
 
