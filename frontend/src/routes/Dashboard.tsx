@@ -5,7 +5,7 @@ import {
   Cell, PieChart, Pie
 } from 'recharts';
 import {
-  useNetworkStats, useWarehouses, useLowStockAlerts, useStockMovements, useDeliveries
+  useNetworkStats, useWarehouses, useLowStockAlerts, useStockMovements, useDeliveries, useStockOverview
 } from '../api/hooks';
 import {
   Card, Badge, CapacityBar, SkeletonCard, Skeleton,
@@ -23,6 +23,53 @@ function StatCard({ label, value, sub, accent = false }: { label: string; value:
         {typeof value === 'number' ? value.toLocaleString() : value}
       </div>
       {sub && <p className="text-xs text-ink-muted">{sub}</p>}
+    </Card>
+  );
+}
+
+// ─── Stock By Row Chart (Hackathon Requirement) ─────────────────────────────
+
+function StockByRowChart() {
+  const { data: rawData, isLoading } = useStockOverview();
+
+  // Format data for Recharts, filter to Ludhiana warehouse (id: 2) as an example
+  // Or just use the first warehouse we have data for.
+  const chartData = rawData
+    ?.filter(r => r.warehouse_id === 2) // PB-LDH-001 is typically ID 2
+    .map(r => ({
+      name: r.row_label,
+      items: r.total_quantity
+    })) || [];
+
+  if (isLoading) {
+    return (
+      <Card className="p-6 border-accent/20 bg-accent/5 flex items-center justify-center min-h-[300px]">
+        <Skeleton height="200px" width="100%" />
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-6 border-accent/20 bg-accent/5">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="font-display text-lg font-bold text-ink">Warehouse Internal: Stock Overview by Row</h2>
+          <p className="text-xs text-ink-subtle mt-1">Ludhiana Grain Depot (PB-LDH-001)</p>
+        </div>
+        <Badge variant="accent" size="sm">📍 Row/Bin Tracking</Badge>
+      </div>
+      <ResponsiveContainer width="100%" height={200}>
+        <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }} barCategoryGap="25%">
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: colors.inkSubtle, fontFamily: 'Inter' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 10, fill: colors.inkSubtle, fontFamily: 'Inter' }} axisLine={false} tickLine={false} tickFormatter={v => `${v} MT`} />
+          <Tooltip 
+            cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+            contentStyle={{ background: colors.ink, border: 'none', borderRadius: 8, color: colors.base, fontSize: 12 }} 
+            labelStyle={{ color: colors.base, fontWeight: 600, marginBottom: 4 }}
+          />
+          <Bar dataKey="items" fill={colors.accentPrimary} radius={[4, 4, 0, 0]} name="Stock Available (MT)" />
+        </BarChart>
+      </ResponsiveContainer>
     </Card>
   );
 }
@@ -168,6 +215,15 @@ export default function Dashboard() {
               <StatCard label="Network Util." value={`${stats.network_utilization_pct.toFixed(1)}%`} sub={`${(stats.total_used_capacity_mt / 1000).toFixed(0)}K MT in use`} />
             </>
           ) : null}
+        </motion.div>
+
+        {/* Hackathon Requirement: Stock by Row */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.08 }}
+        >
+          <StockByRowChart />
         </motion.div>
 
         {/* Charts Row */}
@@ -345,10 +401,10 @@ export default function Dashboard() {
                         <p className="text-sm text-ink truncate max-w-[280px]">To: {d.destination_address}</p>
                       </div>
                       <div className="text-right">
-                        {d.weather_adjusted_eta ? (
+                        {d.estimated_delivery ? (
                           <>
                             <div className={`font-display text-base font-bold ${hasWeatherWarning ? 'text-alert' : 'text-ink'}`}>
-                              {new Date(d.weather_adjusted_eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(d.estimated_delivery).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                             <div className="text-xs text-ink-subtle">ETA {hasWeatherWarning && '(Inflated)'}</div>
                           </>

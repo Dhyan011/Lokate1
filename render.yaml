@@ -1,31 +1,34 @@
 services:
+  # PostgreSQL Database
+  - type: psql
+    name: lokate-db
+    plan: free # Note: Render will use the free tier if available on your account
+
+  # Backend FastAPI Service
   - type: web
     name: lokate-backend
     env: python
     rootDir: backend
-    plan: free
-    buildCommand: "pip install -r requirements.txt && alembic upgrade head && python -m app.db.seed"
-    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
         fromDatabase:
           name: lokate-db
           property: connectionString
-      - key: PYTHONPATH
-        value: .
 
+  # Frontend Static Site
   - type: web
     name: lokate-frontend
     env: static
     rootDir: frontend
-    buildCommand: "npm install && npm run build"
-    staticPublishPath: "./dist"
+    buildCommand: npm install && npm run build
+    publishPath: dist
     envVars:
-      - key: VITE_API_BASE_URL
-        value: "https://lokate-backend.onrender.com" # Assuming default Render slug, you might need to update this after backend deploys!
-
-databases:
-  - name: lokate-db
-    plan: free
-    databaseName: lokate
-    user: lokate_user
+      - key: VITE_USE_MOCK
+        value: "false"
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: lokate-backend
+          property: host

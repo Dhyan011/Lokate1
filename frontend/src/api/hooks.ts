@@ -36,7 +36,12 @@ import {
 } from '../mocks/data';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+let BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+
+// Render provides just the hostname in the `host` property (e.g. app-name.onrender.com)
+if (BASE_URL && !BASE_URL.startsWith('http')) {
+  BASE_URL = `https://${BASE_URL}`;
+}
 
 const api = axios.create({ baseURL: BASE_URL, timeout: 10000 });
 
@@ -54,6 +59,25 @@ export function useNetworkStats() {
     queryFn: async () => {
       if (USE_MOCK) { await delay(); return mockNetworkStats; }
       const { data } = await api.get('/dashboard/stats');
+      return data;
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useStockOverview() {
+  return useQuery<import('../types').StockByRow[]>({
+    queryKey: ['stock-overview'],
+    queryFn: async () => {
+      if (USE_MOCK) {
+        await delay();
+        // Fallback mock if USE_MOCK=true
+        return [
+          { warehouse_id: 1, row_label: 'Row A', total_quantity: 4200 },
+          { warehouse_id: 1, row_label: 'Row B', total_quantity: 2800 },
+        ];
+      }
+      const { data } = await api.get('/dashboard/overview');
       return data;
     },
     staleTime: 60_000,

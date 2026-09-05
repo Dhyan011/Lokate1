@@ -112,6 +112,7 @@ export interface WarehouseCandidate {
   weather_adjusted_eta_minutes: number | null;
   score: number | null;
   reason: string | null;
+  bin_location?: string;
 }
 
 export interface LineItemFulfillment {
@@ -180,6 +181,12 @@ export interface NetworkStats {
   network_utilization_pct: number;
   states_covered: number;
   active_vendors: number;
+}
+
+export interface StockByRow {
+  warehouse_id: number;
+  row_label: string;
+  total_quantity: number;
 }
 
 export interface LowStockAlert {
